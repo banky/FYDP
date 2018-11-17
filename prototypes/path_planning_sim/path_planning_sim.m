@@ -19,6 +19,14 @@ gamma = 0;  % Front wheel rotation angle
 % Initial State
 x0 = [0 0 0]';
 
+% Waypoints
+turn_distance = 1; % Distance between adjacent waypoints
+waypoints = [6 5];
+endPos = waypoints;
+
+% Plastic positions. TODO: Generate randomly
+plastic_pos = [3 3];
+
 % Prior
 mu = [0 0 0]'; % mean (mu) - Prior Belief
 S = 1*eye(3);% covariance (Sigma) - Prior Covariance
@@ -52,73 +60,120 @@ mup_S = zeros(n,length(T));     % Predicted state belief over time
 mu_S = zeros(n,length(T));      % State belief over time
 K_S = zeros(n, n, length(T));   % Kalman Gain over time
 
-% Main loop
-for t=2:length(T)
-    % Set inputs at timestep
-    if t < 50
-        w = 1;
-        gamma = 0;
-    else
-        w = 1;
-        gamma = pi/8;
-    end
-    
-    % Simulation
-    % Select a motion disturbance
-    e = RE*sqrt(Re)*randn(n,1);
-    
-    % Set Bd based on current pose and steering angle
-    theta = x(3,t-1);
-    Bd = [cos(theta); sin(theta); (tan(gamma)/L)];
-    
-    % Update State
-    x(:,t) = Ad*x(:,t-1) + Bd*w + e;
-    
-    % Take Measurement
-    d = QE*sqrt(Qe)*randn(m,1);
-    y(:, t) = Cd*x(:,t) + Dd*w + d;
-    
-    % Extended Kalman Filter Estimation
-    % Prediction Update
-    Gt = [1, 0, -w*sin(mu(3))  % Linearization
-          0, 1,  w*cos(mu(3))
-          0, 0,          1];
-    mup = Ad*mu + Bd*w;
-    Sp = Gt*S*Gt' + R;
-    
-    % Measurement Update
-    Ht = eye(3);    % Linearization
-    K = Sp*Ht'*inv(Ht*Sp*Ht'+Q);
-    mu = mup + K*(y(:,t) - Cd*mup);
-    S = (eye(n) - K*Ht)*Sp;
-    
-    % Store results
-    mup_S(:,t) = mup;
-    mu_S(:,t) = mu;
-    K_S(:, :,t) = K;
-    
-    % Plot results
-    figure(1); clf; hold on;
-    plot(0,0,'mx', 'MarkerSize', 6, 'LineWidth', 2)
-    
-    plot(y(1,2:t),y(2,2:t), 'gx--')
-    plot(x(1,2:t),x(2,2:t), 'ro--')
-    plot(mu_S(1,2:t),mu_S(2,2:t), 'bx--')
-    
-    mu_pos = [mu(1) mu(2)];
-    S_pos = [S(1,1) S(1,2); S(2,1) S(2,2)];
-    error_ellipse(S_pos,mu_pos,0.75);
-    error_ellipse(S_pos,mu_pos,0.95);
-    legend({'Origin', 'Measurement', 'True State', 'Predicted State', '75% Confidence', '95% Confidence'}, 'AutoUpdate', 'off');
+% Set up environment
+startPos = x0(1:2, :)';
 
-    title('True State and Predicted State')
-    xlabel('X Position (m)');
-    ylabel('Y Position (m)');
-    axis square
+% Region Bounds
+posMinBound = [-2 -2];
+posMaxBound = [25 20];
+
+% Number of obstacles
+numObsts = 6;
+% Size bounds on obstacles
+minLen.a = 1;
+maxLen.a = 3;
+minLen.b = 2;
+maxLen.b = 6;
+
+% Random environment generation
+obstBuffer = 0.5;
+max_tries = 10000; % Maximum number of times to try to generate random environment
+seedNumber = rand('state');
+[aObsts,bObsts,obsPtsStore] = polygonal_world(posMinBound, posMaxBound, minLen, maxLen, ...
+numObsts, startPos, [waypoints; plastic_pos], obstBuffer, max_tries);
+
+for i=1:numObsts
+    obsCentroid(i,:) = (obsPtsStore(1,2*(i-1)+1:2*i)+obsPtsStore(3,2*(i-1)+1:2*i))/2;
+end
+
+% Plot random environment
+figure(1); clf;
+hold on;
+plotEnvironment(obsPtsStore,posMinBound, posMaxBound, startPos, endPos);
+hold off
+
+% Grid up the space
+dx =.4;
+dy = .4;
+[X,Y] = meshgrid([posMinBound(1):dx:posMaxBound(1)],[posMinBound(2):dy:posMaxBound(2)]);
+
+% Planning Constants
+Tmax = 10000;
+
+
+for i=1:length(waypoints)
+    % Calculate potential field at each grid point
+    [V, gV] = gen_potential_field(X, Y, waypoints(i,:), numObsts, obsCentroid, obsPtsStore);
     
-    axis_width = 100;
-    axis_height = 100;
-    axis([-axis_width/2 axis_width/2 -axis_height/2 axis_height/2])
+
+    % Main loop
+    for t=2:length(T)
+        % Set inputs at timestep
+        if t < 50
+            w = 1;
+            gamma = 0;
+        else
+            w = 1;
+            gamma = pi/8;
+        end
+        
+        % Simulation
+        % Select a motion disturbance
+        e = RE*sqrt(Re)*randn(n,1);
+        
+        % Set Bd based on current pose and steering angle
+        theta = x(3,t-1);
+        Bd = [cos(theta); sin(theta); (tan(gamma)/L)];
+        
+        % Update State
+        x(:,t) = Ad*x(:,t-1) + Bd*w + e;
+        
+        % Take Measurement
+        d = QE*sqrt(Qe)*randn(m,1);
+        y(:, t) = Cd*x(:,t) + Dd*w + d;
+        
+        % Extended Kalman Filter Estimation
+        % Prediction Update
+        Gt = [1, 0, -w*sin(mu(3))  % Linearization
+            0, 1,  w*cos(mu(3))
+            0, 0,          1];
+        mup = Ad*mu + Bd*w;
+        Sp = Gt*S*Gt' + R;
+        
+        % Measurement Update
+        Ht = eye(3);    % Linearization
+        K = Sp*Ht'*inv(Ht*Sp*Ht'+Q);
+        mu = mup + K*(y(:,t) - Cd*mup);
+        S = (eye(n) - K*Ht)*Sp;
+        
+        % Store results
+        mup_S(:,t) = mup;
+        mu_S(:,t) = mu;
+        K_S(:, :,t) = K;
+        
+        % Plot results
+        figure(1); clf; hold on;
+        plot(0,0,'mx', 'MarkerSize', 6, 'LineWidth', 2)
+        
+        plot(y(1,2:t),y(2,2:t), 'gx--')
+        plot(x(1,2:t),x(2,2:t), 'ro--')
+        plot(mu_S(1,2:t),mu_S(2,2:t), 'bx--')
+        
+        mu_pos = [mu(1) mu(2)];
+        S_pos = [S(1,1) S(1,2); S(2,1) S(2,2)];
+        error_ellipse(S_pos,mu_pos,0.75);
+        error_ellipse(S_pos,mu_pos,0.95);
+        legend({'Origin', 'Measurement', 'True State', 'Predicted State', '75% Confidence', '95% Confidence'}, 'AutoUpdate', 'off');
+
+        title('True State and Predicted State')
+        xlabel('X Position (m)');
+        ylabel('Y Position (m)');
+        axis square
+        
+        axis_width = 100;
+        axis_height = 100;
+        axis([-axis_width/2 axis_width/2 -axis_height/2 axis_height/2])
+    end
 end
 
 

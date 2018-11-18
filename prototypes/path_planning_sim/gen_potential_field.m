@@ -12,15 +12,15 @@ function[V, gV] = gen_potential_field(X, Y, end_pos, num_obsts, obs_centroid, ob
 
     % Calculate potential field at each grid point
     V = zeros(size(X));
-    gV = zeros(2,size(X));
+    gV = zeros(2, size(X,1), size(X,2));
 
     for i=1:length(X(:,1))
         for j=1:length(Y(1,:))
             % Current robot position
             pos = [X(i,j) Y(i,j)];
             % Attractive Potential
-            V(i,j) = 1/2*Katt*norm(pos-end_pos)^2; % potential field
-            gV(:,i,j) = Katt*(pos-end_pos);  % gradient of field
+            V(i,j) = 1/2*K_att*norm(pos-end_pos)^2; % potential field
+            gV(:,i,j) = K_att*(pos-end_pos);  % gradient of field
 
             % Repulsive potentials
             for k=1:num_obsts
@@ -33,15 +33,15 @@ function[V, gV] = gen_potential_field(X, Y, end_pos, num_obsts, obs_centroid, ob
                     curpoly = [curobs curobs([2:end, 1],:)];
                     [minD,minPt, d, pt, ind] = min_dist_to_edges(pos, curpoly);
                     if (minD < r0)
-                        V(i,j) = V(i,j) + 1/2*Krep*(1/minD-1/r0)^2;
-                        gV(:,i,j) = gV(:,i,j) + Krep*(-1/minD+1/r0)*(pos'-minPt')/minD^(3);
+                        V(i,j) = V(i,j) + 1/2*K_rep*(1/minD-1/r0)^2;
+                        gV(:,i,j) = gV(:,i,j) + K_rep*(-1/minD+1/r0)*(pos'-minPt')/minD^(3);
                     end
                     % Add potential of distance to center, to avoid getting
                     % stuck on flat walls
-                    centD = norm(pos-obsCentroid(k,:));
+                    centD = norm(pos-obs_centroid(k,:));
                     if (centD < rc0)
-                        V(i,j) =  V(i,j) + 1/2*Krep*(1/centD-1/rc0)^2;
-                        gV(:,i,j) = gV(:,i,j) + Krep*(-1/centD+1/rc0)*(pos'-obsCentroid(k,:)')/centD^(3);
+                        V(i,j) =  V(i,j) + 1/2*K_rep*(1/centD-1/rc0)^2;
+                        gV(:,i,j) = gV(:,i,j) + K_rep*(-1/centD+1/rc0)*(pos'-obs_centroid(k,:)')/centD^(3);
                     end
                 end
             end

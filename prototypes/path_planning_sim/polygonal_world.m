@@ -50,7 +50,7 @@ function [a,b,ptsStore] = polygonal_world(posMinBound, posMaxBound, minLen, maxL
             for j = 1:length(endPosns)
                 endPos = endPosns(j,:);
                 if(min(pts(:,1)) < endPos(1) && max(pts(:,1)) > endPos(1) && min(pts(:,2)) < endPos(2) && max(pts(:,2)) > endPos(2))
-                    waypoint_collision = 1
+                    waypoint_collision = 1;
                     break;
                 end
             end

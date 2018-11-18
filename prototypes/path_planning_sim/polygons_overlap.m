@@ -25,7 +25,7 @@ function val = polygons_overlap(poly1, poly2)
     obstEdges = [poly2,[poly2(2:end,:);poly2(1,:)]];
     % Loop over all possible intersections
     for vertex = 1:(length(poly1)-1)
-        if (check_collisions(poly1(vertex,:), poly1(vertex+1,:), obstEdges))
+        if (check_collision(poly1(vertex,:), poly1(vertex+1,:), obstEdges))
             val = true;
             return
         end

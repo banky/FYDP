@@ -6,6 +6,17 @@
 
 close all; clc;
 
+% Initialize Video
+videoobj = VideoWriter('vid_13.mp4','MPEG-4');
+truefps = 1;
+videoobj.FrameRate = 10; %Anything less than 10 fps fails.
+videoobj.Quality = 100;
+open(videoobj);
+
+% Region Bounds
+posMinBound = [-2 -2];
+posMaxBound = [25 25];
+
 % Discrete time step
 update_rate = 10;
 gps_correction_rate = 1;
@@ -13,25 +24,30 @@ dt = 1/update_rate;
 gps_dt = 1/gps_correction_rate;
 delta_max = 25*pi/180;
 
-% Constants
+% Robot Properties
 L = 0.67;   % Length from back axle to front axle
-gamma = 0;  % Front wheel rotation angle
+sensor_range_max = 4;
+sensor_theta_max = pi / 4;
+sensor_meas_type = 3; % 1 - range, 2 - bearing, 3 - both
 
 % Initial State
 x0 = [0 0 0]';
 
 % Waypoints
-turn_distance = 7; % Distance between adjacent waypoints
+turn_distance = 5; % Distance between adjacent waypoints
 waypoints = [];
-for i=1:4:10
-    waypoints(i,:) = [20 (i-1)*turn_distance/2];
-    waypoints(i+1,:) = [20 (i-1)*turn_distance/2 + turn_distance];
-    waypoints(i+2,:) = [0 (i-1)*turn_distance/2 + turn_distance];
-    waypoints(i+3,:) = [0 (i-1)*turn_distance/2 + 2*turn_distance];
+for i=1:4:5
+    waypoints(i,:) = [posMaxBound(1)-2 (i-1)*turn_distance/2];
+    waypoints(i+1,:) = [posMaxBound(1)-2 (i-1)*turn_distance/2 + turn_distance];
+    waypoints(i+2,:) = [posMinBound(1)+2 (i-1)*turn_distance/2 + turn_distance];
+    waypoints(i+3,:) = [posMinBound(1)+2 (i-1)*turn_distance/2 + 2*turn_distance];
 end
 
-% Plastic positions. TODO: Generate randomly
-plastic_pos = [10 0.4];
+% Plastic positions
+num_plastic = 5;
+plastic_map = rand(num_plastic,2);
+plastic_map = [(posMaxBound(1)-2 - posMinBound(1))*plastic_map(:,1) + posMinBound(1) ...
+    (posMaxBound(2)-2 - posMinBound(2))*plastic_map(:,2) + posMinBound(2)];
 
 % Prior
 mu = [0 0 0]'; % mean (mu) - Prior Belief
@@ -48,8 +64,8 @@ R = [0.01^2 0 0; 0 0.01^2 0; 0 0 (deg2rad(0.1)^2)];
 [RE, Re] = eig (R);
 
 % Measurement model
-Q = [0.5 0 0; 0 0.5 0; 0 0 deg2rad(10)];
-Q_gps =  [0.01 0 0; 0 0.01 0; 0 0 deg2rad(10)];
+Q = [0.1 0; 0 deg2rad(10)];
+Q_gps =  [0.5 0 0; 0 0.5 0; 0 0 deg2rad(10)];
 [QE, Qe] = eig(Q);
 [QE_gps, Qe_gps] = eig(Q_gps);
 
@@ -69,12 +85,8 @@ K_S = zeros(n, n, length(T));   % Kalman Gain over time
 % Set up environment
 startPos = x0(1:2, :)';
 
-% Region Bounds
-posMinBound = [-2 -2];
-posMaxBound = [25 20];
-
 % Number of obstacles
-numObsts = 1;
+numObsts = 5;
 % Size bounds on obstacles
 minLen.a = 1;
 maxLen.a = 2;
@@ -86,8 +98,8 @@ disp('Generating Random Environment...')
 obstBuffer = 0.5;
 max_tries = 10000; % Maximum number of times to try to generate random environment
 seedNumber = rand('state');
-% [aObsts,bObsts,obsPtsStore] = polygonal_world(posMinBound, posMaxBound, minLen, maxLen, ...
-% numObsts, startPos, [waypoints; plastic_pos], obstBuffer, max_tries);
+[aObsts,bObsts,obsPtsStore] = polygonal_world(posMinBound, posMaxBound, minLen, maxLen, ...
+numObsts, startPos, [waypoints; plastic_map], obstBuffer, max_tries);
 
 for i=1:numObsts
     obsCentroid(i,:) = (obsPtsStore(1,2*(i-1)+1:2*i)+obsPtsStore(3,2*(i-1)+1:2*i))/2;
@@ -97,7 +109,10 @@ disp('Environment Generation Complete...')
 % Plot random environment
 figure(1); clf;
 hold on;
-plotEnvironment(obsPtsStore,posMinBound, posMaxBound, startPos, waypoints);
+plotEnvironment(obsPtsStore,posMinBound, posMaxBound, startPos, plastic_map);
+title('True State and Predicted State')
+xlabel('X Position (m)');
+ylabel('Y Position (m)');
 
 % Grid up the space
 dx =.2;
@@ -106,19 +121,22 @@ dy = dx;
 
 % Planning Constants
 Tmax = 10000;
-r0 = 1; % Radius of Repulsion
+r0 = 0.5; % Radius of Repulsion
 rc0 = 4;
 K_att = 0.2;%0.2; % Attractive
-K_rep = 1000; % Repulsive
+K_rep = 2000; % Repulsive
 Vmax = 50; % Upper bound on potential
 
 % Controls Constants
 K_steer = 3;
-velocity = 1;
+velocity = 2;
 
 total_time = 2;  % Total time from beginning of sim
 
-for i=1:size(waypoints,1)
+picking_garbage = 0;    % On our way to pick garbage
+
+i = 1;
+while i < size(waypoints,1)
     % Calculate potential field at each grid point. For visual only
 %     [V, gV] = gen_potential_field(X, Y, waypoints(i,:), numObsts, obsCentroid, obsPtsStore);
     
@@ -152,18 +170,52 @@ for i=1:size(waypoints,1)
         end
         path(:,t) = path(:,t-1) - dx.*gVcur';
     end
-      
+    
     % Smooth out the path
     path(1,1:t) = smooth(path(1,1:t), 20);
     path(2,1:t) = smooth(path(2,1:t), 20);
+    
+%     figure(1); hold on;
+%     plot(path(1, 1:t), path(2, 1:t));
     
 %     figure(2); clf; hold on;
 %     surf(X,Y,V)
 %     axis([posMinBound(1) posMaxBound(1) posMinBound(2) posMaxBound(2) 0 Vmax])
     
+    % 
+    reached_feature = 0;
+    TOL = 0.7;
+
     figure(1); hold on;
     
-    while(sqrt((mu(1) - end_pos(1))^2 + (mu(2) - end_pos(2))^2) > 0.5)
+    while(~reached_feature)
+        
+        % Get positions of garbage in view
+        [features, featureInViewFlag] = get2dpointmeasurement(plastic_map,...
+            x(:,total_time-1),sensor_range_max,sensor_theta_max,Q,sensor_meas_type);
+        % Find first feature in view
+        garbage_index = find(featureInViewFlag==1,1);
+        % Determine coordinates of feature used for localization
+        selectedFeature = plastic_map(garbage_index,:);
+        
+        % Not currently on the way to pick some garbage
+        % and we see garbage and we are not already on top of garbage
+        if (~picking_garbage && ~isempty(selectedFeature) && ...
+            sqrt((mu(1)-selectedFeature(1))^2 + (mu(2)-selectedFeature(2))^2) > TOL)
+            if (i == 1) % Shift first waypoint over
+                waypoints = [selectedFeature; waypoints];
+            else
+                waypoints = [waypoints(1:i-1,:); selectedFeature; waypoints(i:end,:)];
+            end
+            
+            picking_garbage = 1;
+            break;
+        end
+        
+        % If heading to waypoint, use a less strict tolerance
+        if (~picking_garbage && isempty(selectedFeature))
+            TOL = 2;
+        end
         
         % Find point on path that is closest to robot
         shortest_dist = -1;
@@ -204,7 +256,7 @@ for i=1:size(waypoints,1)
         x(:,total_time) = Ad*x(:,total_time-1) + dt*Bd*w + e;
 
         % Take Measurement
-        d = QE*sqrt(Qe)*randn(m,1);
+        d = QE_gps*sqrt(Qe_gps)*randn(m,1);
         y(:, total_time) = Cd*x(:,total_time) + dt*Dd*w + d;
 
         % Extended Kalman Filter Estimation
@@ -217,7 +269,7 @@ for i=1:size(waypoints,1)
 
         % Measurement Update
         Ht = eye(3);    % Linearization
-        K = Sp*Ht'*inv(Ht*Sp*Ht'+Q);
+        K = Sp*Ht'*inv(Ht*Sp*Ht'+Q_gps);
         mu = mup + K*(y(:,total_time) - Cd*mup);
         S = (eye(n) - K*Ht)*Sp;
 
@@ -227,40 +279,31 @@ for i=1:size(waypoints,1)
         K_S(:, :,total_time) = K;
         
         figure(1); hold on;
-        plot(x(1,2:total_time),x(2,2:total_time), 'ro')
-        plot(mu(1),mu(2), 'bx')
+        p_x = plot(x(1,2:total_time),x(2,2:total_time), 'ro');
+        p_mu = plot(mu(1),mu(2), 'bx');
+        legend([p_x p_mu], 'True State', 'Predicted State', 'AutoUpdate', 'off');
         
         total_time = total_time + 1;
+        
+        % Check if we have reached the next feature
+        reached_feature = sqrt((mu(1) - end_pos(1))^2 + (mu(2) - end_pos(2))^2) < TOL;
+    
+        set(gcf, 'Position', [100, 100, 640, 640]);
+        F = getframe(gcf);
+        writeVideo(videoobj, F);
     end
     
-
-
-%         plot(x(1,2:t),x(2,2:t), 'ro--')
-%         plot(mu_S(1,2:t),mu_S(2,2:t), 'bx--')
-        
-%         % Plot results
-%         figure(2); clf; hold on;
-%         plot(0,0,'mx', 'MarkerSize', 6, 'LineWidth', 2)
-%         
-%         plot(y(1,2:t),y(2,2:t), 'gx--')
-%         plot(x(1,2:t),x(2,2:t), 'ro--')
-%         plot(mu_S(1,2:t),mu_S(2,2:t), 'bx--')
-%         
-%         mu_pos = [mu(1) mu(2)];
-%         S_pos = [S(1,1) S(1,2); S(2,1) S(2,2)];
-%         error_ellipse(S_pos,mu_pos,0.75);
-%         error_ellipse(S_pos,mu_pos,0.95);
-%         legend({'Origin', 'Measurement', 'True State', 'Predicted State', '75% Confidence', '95% Confidence'}, 'AutoUpdate', 'off');
-% 
-%         title('True State and Predicted State')
-%         xlabel('X Position (m)');
-%         ylabel('Y Position (m)');
-%         axis square
-%         
-%         axis_width = 100;
-%         axis_height = 100;
-%         axis([-axis_width/2 axis_width/2 -axis_height/2 axis_height/2])
-
+    % If we are on our way to pick garbage
+    if (picking_garbage == 1 && ~reached_feature)
+        continue;
+    elseif (picking_garbage ==1 && reached_feature)
+        plastic_map(garbage_index, :) = [];
+    end
+    
+    picking_garbage = 0;
+    i = i + 1;
 end
+
+close(videoobj);
 
 

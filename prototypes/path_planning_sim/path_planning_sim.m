@@ -93,7 +93,6 @@ maxLen.a = 2;
 minLen.b = 1;
 maxLen.b = 2;
 
-disp('Generating Random Environment...')
 % Random environment generation
 obstBuffer = 0.5;
 max_tries = 10000; % Maximum number of times to try to generate random environment
@@ -104,7 +103,6 @@ numObsts, startPos, [waypoints; plastic_map], obstBuffer, max_tries);
 for i=1:numObsts
     obsCentroid(i,:) = (obsPtsStore(1,2*(i-1)+1:2*i)+obsPtsStore(3,2*(i-1)+1:2*i))/2;
 end
-disp('Environment Generation Complete...')
 
 % Plot random environment
 figure(1); clf;
@@ -120,18 +118,19 @@ dy = dx;
 [X,Y] = meshgrid(posMinBound(1):dx:posMaxBound(1),posMinBound(2):dy:posMaxBound(2));
 
 % Planning Constants
-Tmax = 10000;
+Tmax = 10000; % If it takes us too long to get there, probably stuck
 r0 = 0.5; % Radius of Repulsion
 rc0 = 4;
 K_att = 0.2;%0.2; % Attractive
-K_rep = 2000; % Repulsive
+K_rep = 1000; % Repulsive
 Vmax = 50; % Upper bound on potential
 
 % Controls Constants
 K_steer = 3;
+K_smoothing = 1.5;
 velocity = 2;
 
-total_time = 2;  % Total time from beginning of sim
+total_time = 2;  % Total time from beginning of sim. Starts from 2 since initial state is already known
 
 picking_garbage = 0;    % On our way to pick garbage
 
@@ -182,9 +181,8 @@ while i < size(waypoints,1)
 %     surf(X,Y,V)
 %     axis([posMinBound(1) posMaxBound(1) posMinBound(2) posMaxBound(2) 0 Vmax])
     
-    % 
-    reached_feature = 0;
-    TOL = 0.7;
+    reached_feature = 0;    % Whether we have reached the current waypoint
+    TOL = 0.7;  % Distance to waypoint to indicate we have reached it
 
     figure(1); hold on;
     
@@ -212,7 +210,7 @@ while i < size(waypoints,1)
             break;
         end
         
-        % If heading to waypoint, use a less strict tolerance
+        % If heading to waypoint and not plastic, use a less strict tolerance
         if (~picking_garbage && isempty(selectedFeature))
             TOL = 2;
         end
@@ -228,7 +226,7 @@ while i < size(waypoints,1)
             end
         end
         
-        % Edge case at the beginning of run
+        % Edge case at the beginning of path
         if shortest_dist_idx < 2
             shortest_dist_idx = 2;
         end
@@ -240,7 +238,7 @@ while i < size(waypoints,1)
         [crosstrack_error, next_point] = distanceToLineSegment(start_point,end_point,mu(1:2)');
 
         % Calculate steering angle
-        curr_delta = angleWrap((mu(3) - traj_angle))+ atan2(crosstrack_error,1.5*velocity);
+        curr_delta = angleWrap((mu(3) - traj_angle))+ atan2(crosstrack_error,K_smoothing*velocity);
         delta = max(-delta_max,min(delta_max, K_steer*curr_delta));
         w = velocity;
 

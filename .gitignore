@@ -3,3 +3,10 @@
 *.png
 *.jpg
 *.jpeg
+*.h5
+
+# CIFAR-10 image dataset
+data/
+
+# VSCode files
+.vscode/

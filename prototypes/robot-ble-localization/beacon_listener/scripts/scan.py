@@ -30,12 +30,12 @@ class BeaconScanDelegate(DefaultDelegate):
 
     def handleDiscovery(self, scanEntry, isNewDev, isNewData):
         if isNewDev:
-            rospy.loginfo("New Device Found:")
-            rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
+            # rospy.loginfo("New Device Found:")
+            # rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             pass
 
         if scanEntry.addr == "e2:f4:c9:c1:fa:29": # Beacon A
-            rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
+            # rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             packet = AdvertisingPacket(scanEntry)
             packet.product = scanEntry.getValueText(9) # Get the product name
 
@@ -47,7 +47,7 @@ class BeaconScanDelegate(DefaultDelegate):
             self.__container.insert(packet.addr, packet)
 
         elif scanEntry.addr == "f4:69:bc:c3:91:f6": # Beacon B
-            rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
+            # rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             packet = AdvertisingPacket(scanEntry)
             packet.product = scanEntry.getValueText(9) # Get the product name
 
@@ -59,7 +59,7 @@ class BeaconScanDelegate(DefaultDelegate):
             self.__container.insert(packet.addr, packet)
 
         elif scanEntry.addr == "f5:42:9c:3f:66:ac": # Beacon C
-            rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
+            # rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             packet = AdvertisingPacket(scanEntry)
             packet.product = scanEntry.getValueText(9) # Get the product name
             

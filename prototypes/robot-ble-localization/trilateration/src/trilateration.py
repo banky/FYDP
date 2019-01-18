@@ -49,6 +49,9 @@ if __name__ == "__main__":
     pub = rospy.Publisher('beacon_localization/bl_pose', Pose, queue_size=100)
 
     r = rospy.Rate(LOCALIZATION_RATE)
+    
+    print('hello 1')    
+
     while not rospy.is_shutdown():
 
         # Ask service for beacons
@@ -66,7 +69,7 @@ if __name__ == "__main__":
             continue
 
         position = trilateration_engine.calculate(beacons_with_distances.measurements)
-
+        rospy.logwarn('hello')
         pub.publish(Pose(position=Point(
             x=position[0],
             y=position[1],

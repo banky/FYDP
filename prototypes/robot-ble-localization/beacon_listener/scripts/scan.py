@@ -30,14 +30,18 @@ class BeaconScanDelegate(DefaultDelegate):
 
     def handleDiscovery(self, scanEntry, isNewDev, isNewData):
         if isNewDev:
-            # rospy.loginfo("New Device Found:")
-            # rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
+            rospy.loginfo("New Device Found:")
+            rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             pass
 
         if scanEntry.addr == "e2:f4:c9:c1:fa:29": # Beacon A
             rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             packet = AdvertisingPacket(scanEntry)
             packet.product = scanEntry.getValueText(9) # Get the product name
+
+            if packet.product is None:
+                return
+            
             packet.gid = 0x11111111
             packet.bid = "aa5aab45bdcf"
             self.__container.insert(packet.addr, packet)
@@ -46,6 +50,10 @@ class BeaconScanDelegate(DefaultDelegate):
             rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             packet = AdvertisingPacket(scanEntry)
             packet.product = scanEntry.getValueText(9) # Get the product name
+
+            if packet.product is None:
+                return
+            
             packet.gid = 0x11111111
             packet.bid = "237b44757adc"
             self.__container.insert(packet.addr, packet)
@@ -54,6 +62,11 @@ class BeaconScanDelegate(DefaultDelegate):
             rospy.loginfo("Discovery of device %s, RSSI: %s", scanEntry.addr, scanEntry.rssi)
             packet = AdvertisingPacket(scanEntry)
             packet.product = scanEntry.getValueText(9) # Get the product name
+            
+
+            if packet.product is None:
+                return
+
             packet.gid = 0x11111111
             packet.bid = "aaa25624c9e4"
             self.__container.insert(packet.addr, packet)

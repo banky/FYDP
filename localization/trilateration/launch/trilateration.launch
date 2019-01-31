@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="trilateration" pkg="trilateration" type="trilateration.py" respawn="true"
+    output="screen"/>
+
+
+</launch>

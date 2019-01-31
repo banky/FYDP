@@ -1,0 +1,6 @@
+<launch>
+  <arg name="robot_name" default="batman"/>
+    <!-- Localization -->
+  <node name="pf" pkg="particle_filter" type="pf.py" output="screen" ns="$(arg robot_name)">
+  </node>
+</launch>

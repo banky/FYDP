@@ -1,1 +1,26 @@
 # FYDP
+
+## Setup Instructions
+1. Install ROS from http://wiki.ros.org/ROS/Installation
+2. Install opencv tools
+```bash
+sudo apt-get install libopencv-dev python-opencv
+```
+3. Install libusb for USB communication
+```bash
+sudo apt-get install libusb-1.0-0-dev
+```
+4. Install GLUT libraries (for kinect)
+```bash
+sudo apt-get install libxmu-dev libxi-dev
+```
+5. Install some more libraries 
+```bash
+sudo apt-get install cython python-dev python-numpy
+```
+6. Install libfreenect
+```bash
+sudo apt-get install freenect
+```
+
+

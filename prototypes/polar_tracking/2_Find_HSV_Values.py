@@ -50,6 +50,8 @@ def rgb(dev, data, timestamp):
         # find intensity value of middle pixel
         pxl_V = CH_V[int(frame.shape[0]/2), int(frame.shape[1]/2)]
 
+        cv2.imwrite("measure_hsv.jpg", _target)
+
         print("Hue", pxl_H)
         print("Saturation", pxl_S)
         print("Intensity", pxl_V)

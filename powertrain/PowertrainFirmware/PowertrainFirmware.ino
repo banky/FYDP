@@ -3,6 +3,8 @@
 Servo esc_signal; // create esc signal object to control esc
 Servo myservo;    // create servo object to control a servo
 
+extern HardwareSerial Serial;
+
 // Servo limits NEED TO BE UPDATED
 #define maxLeft 90
 #define maxRight 100
@@ -35,6 +37,10 @@ void setup()
 
     myservo.attach(10); // Attaches the servo on pin 10 to the servo object
 
+    Serial.println("Starting PowerTrain FW");
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LOW);
+
     delay(2000); // Show time.
 }
 
@@ -59,9 +65,11 @@ void loop()
         // Used for inputs from Jetson
         else if (incomingByte < JETSON_CMD_END)
         {
+            // JETSON_CMD cmd = Serial.parseInt();
             JETSON_CMD cmd = (JETSON_CMD)incomingByte;
-            incomingByte = Serial.read();
+            incomingByte = Serial.parseInt();
             char val = (char)incomingByte;
+
             jetsonCommand(cmd, val);
         }
 
@@ -247,12 +255,14 @@ void jetsonCommand(JETSON_CMD cmd, char val)
 
         motorSpeed = val;
         updateMotors();
+        digitalWrite(LED_BUILTIN, HIGH);
         break;
     case SERVO_ANGLE:
         // Rotation is value between 0 and 256
         // 0 is -pi/4 256 is pi/4
         rotation = val;
         updateMotors();
+        digitalWrite(LED_BUILTIN, LOW);
         break;
 
     default:

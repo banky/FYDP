@@ -47,6 +47,24 @@ def get_video():
     """ Get's the current video data from Kinect """
     return frame_convert2.video_cv(freenect.sync_get_video()[0])
 
+def find_rects(data, is_garbage):
+
+    points = []
+
+    data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
+    x, y, w, h = cv2.boundingRect(data)
+    cv2.rectangle(data, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    point = Point(x + w/2, y + h/2)
+
+    if (w > 5 and h > 5):
+        points.append(point)
+
+    if is_garbage:
+        cv2.imshow('Garbage Frame', data)
+    else:
+        cv2.imshow('Obstacle Frame', data)
+
+    return points
 
 def find_circles(data, is_garbage):
     """ Pass in filtered data and whether or not the filter is for
@@ -61,7 +79,7 @@ def find_circles(data, is_garbage):
     frame = cv2.GaussianBlur(frame, (9, 9), 0)
 
     circles = cv2.HoughCircles(
-        frame, cv2.HOUGH_GRADIENT, 1, 200, param1=50, param2=15, minRadius=3, maxRadius=50)
+        frame, cv2.HOUGH_GRADIENT, 1, 200, param1=50, param2=15, minRadius=1, maxRadius=50)
     # this function will need some tuning and trial & error, see the opencv documentation
 
     if circles is not None:
@@ -101,9 +119,23 @@ def filter_image(data, lower_limit, upper_limit):
 
     # bitwise-and original frame using the mask above to find the filtered frame.
     frame = cv2.bitwise_and(frame, frame, mask=mask)
+    frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) # Need two steps here bc we can't go direct from hsv to gray
+    frame = (frame > 0).astype(int) # select for all values that are not black
+    frame = np.multiply(frame, 255) # Scale all values that are not black up to white
+    frame = np.array(frame, dtype=np.uint8) # Need uint8 type
+
+    # Filter image with morphological operators
+    er_kernel = np.ones((3, 3), np.uint8)
+    frame = cv2.morphologyEx(frame, cv2.MORPH_OPEN, er_kernel, iterations=1)
+    
+    # frame = cv2.erode(frame, er_kernel, iterations=1)
+
+    dil_kernel = np.ones((3, 3), np.uint8)
+    frame = cv2.dilate(frame, dil_kernel, iterations=10)
 
     # convert filtered frame back to BGR colourspace (opencv likes BGR rather than RGB)
-    return cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
+    return cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
 def find_obstacles(video, depth):
     """ Get the feature location of obstacles in frame """
@@ -112,10 +144,10 @@ def find_obstacles(video, depth):
 
     # Setup lower threshold masks for filtering (H,S,V)
     # Use higher than 180 hue to wrap around to 0
-    lower_red = np.array([150, 230, 20])
-    upper_red = np.array([210, 255, 200])
+    lower_red = np.array([175, 250, 20])
+    upper_red = np.array([185, 255, 200])
     obstacle_frame = filter_image(video, lower_red, upper_red)
-    obstacle_locs = find_circles(obstacle_frame, False)
+    obstacle_locs = find_rects(obstacle_frame, False)
 
     if obstacle_locs is None:
         return obstacles
@@ -137,10 +169,11 @@ def find_garbage(video, depth):
 
     garbages = []
 
-    lower_green = np.array([30, 210, 20])
+    lower_green = np.array([30, 250, 20])
     upper_green = np.array([40, 255, 200])
     garbage_frame = filter_image(video, lower_green, upper_green)
-    garbage_locs = find_circles(garbage_frame, True)
+    # garbage_locs = find_circles(garbage_frame, True)
+    garbage_locs = find_rects(garbage_frame, True)
 
     if garbage_locs is None:
         return garbages
@@ -157,34 +190,8 @@ def find_garbage(video, depth):
 
     return garbages
 
-
-def main():
-    """ Main Function For Program """
-
-    cv2.namedWindow('Garbage Frame')
-    cv2.namedWindow('Obstacle Frame')
-    # cv2.namedWindow('Depth')
-
-    print('Press ESC in window to stop')
-
-    while True:
-        depth = get_depth()
-        video = get_video()
-        depth_frame = frame_convert2.pretty_depth_cv(depth)
-        # cv2.imshow('Depth', depth_frame)
-        # cv2.imshow('RGB', video)
-
-        # cv2.imshow("RGB", video)
-        if cv2.waitKey(10) == 27:
-            break
-        garbages = find_garbage(video, depth)
-        for garbage in garbages:
-            print("Distance: ", garbage.dist, "Theta: ", garbage.theta,
-                  "Is Garbage: ", garbage.is_garbage)
-
-        obstacles = find_obstacles(video, depth)
-        for obstacle in obstacles:
-            print("Distance: ", obstacle.dist, "Theta: ", obstacle.theta,
-                  "Is Garbage: ", obstacle.is_garbage)
-
-main()
+def init():
+    ctx = freenect.init()
+    dev = freenect.open_device(ctx, freenect.num_devices(ctx) - 1)
+    freenect.set_tilt_degs(dev, 0)
+    freenect.close_device(dev)

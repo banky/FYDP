@@ -21,6 +21,12 @@ sudo apt-get install cython python-dev python-numpy
 6. Install libfreenect
 ```bash
 sudo apt-get install freenect
+sudo python setup.py install # From https://github.com/OpenKinect/libfreenect/tree/master/wrappers/python
 ```
+7. Machine learning models are on Google Drive under Machine Learning Models/
 
+8. Install TKinter
+```bash
+sudo apt-get install python3-tk
+```
 

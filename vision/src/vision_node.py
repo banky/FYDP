@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python-snakes
 
 #   Copyright Beach Cleaning Automated
 #
@@ -9,11 +9,14 @@ import os.path
 import rospy
 import cv2
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+print(sys.version)
 
 # from ..scripts import object_locator
-import scripts.object_locator as object_locator
+from scripts.object_locator import ObjectLocator
 import scripts.frame_convert2 as frame_convert2
 from vision.msg import Position
+from scripts.faster_rcnn import Config
+
 
 def shutdown_hook():
     """ Called when ROS is exit """
@@ -30,7 +33,7 @@ if __name__ == "__main__":
     cv2.namedWindow('Obstacle Frame')
     # cv2.namedWindow('Depth')
 
-    object_locator.init()
+    object_locator = ObjectLocator()
 
     print('Press ESC in window to stop')
 
@@ -42,9 +45,9 @@ if __name__ == "__main__":
     r = rospy.Rate(PUBLISH_RATE)
     while not rospy.is_shutdown():
 
-        depth = object_locator.get_depth()
-        video = object_locator.get_video()
-        depth_frame = frame_convert2.pretty_depth_cv(depth)
+        # depth = object_locator.get_depth()
+        # video = object_locator.get_video()
+        # depth_frame = frame_convert2.pretty_depth_cv(depth)
         # cv2.imshow('Depth', depth_frame)
         # cv2.imshow('RGB', video)
 
@@ -52,11 +55,13 @@ if __name__ == "__main__":
         if cv2.waitKey(10) == 27: # Wait until ESC is pressed
             break
         
-        garbages = object_locator.find_garbage(video, depth)
+        object_locator.update()
+
+        garbages = object_locator.find_garbage()
         for garbage in garbages:
             garbage_pub.publish(garbage.dist, garbage.theta)
 
-        obstacles = object_locator.find_obstacles(video, depth)
+        obstacles = object_locator.find_obstacles()
         for obstacle in obstacles:
             obstacle_pub.publish(obstacle.dist, obstacle.theta)
 

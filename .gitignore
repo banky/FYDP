@@ -4,6 +4,10 @@
 *.jpg
 *.jpeg
 *.h5
+*.tif
+*.JPG
+vision/scripts/model
+*__pycache__/
 
 # CIFAR-10 image dataset
 data/

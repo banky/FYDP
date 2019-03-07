@@ -1,0 +1,7 @@
+can
+bottle
+box
+human
+leg
+chair
+tree

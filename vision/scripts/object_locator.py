@@ -19,22 +19,11 @@ from .utils import letterbox_image
 from keras.utils import multi_gpu_model
 import time
 
-import freenect
-from . import frame_convert2
-
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 FRAME_RESOLUTION = 10 # Number of pixels per degree Kinect uses
 FRAME_MAX_DEPTH = 2047
 BASE_PATH = "../scripts/"
-
-def depth_2_feet(depth):
-    """ Returns the depth measured by the Kinect in meters """
-    return 4945422 + (2.258474 - 4945422)/(1 + (depth/5031.15)**8.170714)
-
-def depth_2_metres(depth):
-    """ Converts a value in feet to metres """
-    return 0.3048 * depth_2_feet(depth)
 
 class Point():
     """ Point describes locations of objects of interest in video """
@@ -204,14 +193,6 @@ class YOLO(object):
 
     def close_session(self):
         self.sess.close()
-
-def get_video():
-    """ Get's the current video data from Kinect """
-    return frame_convert2.video_cv(freenect.sync_get_video()[0])
-
-def get_depth():
-    """ Get's the current depth data from Kinect """
-    return freenect.sync_get_depth()[0]
 
 def update(yolo):
     frame = get_video()

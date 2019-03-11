@@ -33,16 +33,19 @@ def obstacle_callback(data, args):
         ser_local.write('x 100')
 
 if __name__ == "__main__":
-    
     rospy.init_node("powertrain")
     rospy.loginfo("Starting Powertrain Node")
     rospy.on_shutdown(shutdown_hook)
 
     ser = serial.Serial()
     ser.baudrate = 9600
-    ser.port = '/dev/ttyUSB0'
+    ser.port = '/dev/ttyACM0'
+    ser.open()
 
     rospy.Subscriber('vision/garbage', Position, garbage_callback, callback_args=ser)
     rospy.Subscriber('vision/obstacles', Position, obstacle_callback, callback_args=ser)
 
-    rospy.spin()
+    while (True):
+        line = ser.readline()
+        print (line)
+        #publish angle as message to a topic

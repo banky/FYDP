@@ -5,13 +5,12 @@
 #   Author: Bankole Adebajo and Johvonna Murray-Bradshaw
 
 """
-    This module is used to send serial commands from NVIDIA Jetson to Arduino
+    This module is used to transfer serial data between the NVIDIA Jetson and Arduino
 """
 
 import serial
 import rospy
 import numpy
-# import transformations.c
 import tf
 from vision.msg import Position
 from geometry_msgs import Quaternion
@@ -49,8 +48,11 @@ if __name__ == "__main__":
     rospy.Subscriber('vision/garbage', Position, garbage_callback, callback_args=ser)
     rospy.Subscriber('vision/obstacles', Position, obstacle_callback, callback_args=ser)
 
-    '''Reading IMU orientation data'''
-    #Disgard first 10 readings
+
+
+
+    '''Reading IMU orientation data from Arduino and sending to Jetson'''
+    #Disgard first 10 readings on startup
     for i in range(10):
         ser.readline()
     

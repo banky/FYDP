@@ -15,6 +15,9 @@ import tf
 from vision.msg import Position
 from geometry_msgs.msg import Quaternion
 
+PUBLISH_RATE = 30 # Publish Rate in Hz
+
+
 def shutdown_hook():
     """ Called when ROS is exit """
 
@@ -42,7 +45,7 @@ if __name__ == "__main__":
 
     ser = serial.Serial()
     ser.baudrate = 9600
-    ser.port = '/dev/ttyACM2'
+    ser.port = '/dev/ttyACM0'
     ser.open()
 
     rospy.Subscriber('vision/garbage', Position, garbage_callback, callback_args=ser)
@@ -52,14 +55,15 @@ if __name__ == "__main__":
 
 
     '''Reading IMU orientation data from Arduino and sending to Jetson'''
-    orientation_pub = rospy.Publisher('imu/orientation', Quaternion, queue_size=100)
-     
+    orientation_pub = rospy.Publisher('imu/orientation', Quaternion, queue_size=10)
+    r = rospy.Rate(PUBLISH_RATE)
+
     #Disgard first 10 readings on startup
     for i in range(10):
         ser.readline()
     
     #Continuously read orientation data and publish to imu topic
-    while (True):
+    while (not rospy.is_shutdown()):
         #Convert reading to a matrix of Euler angles
         line = ser.readline().split(',')
         e_orientation = [float(euler_angle) for euler_angle in line]
@@ -72,3 +76,6 @@ if __name__ == "__main__":
 
         #Publish to topic
         orientation_pub.publish(q_msg)
+
+        r.sleep()
+

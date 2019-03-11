@@ -51,8 +51,8 @@ def main():
     garbage_pub = rospy.Publisher('vision/garbage', Position, queue_size=10)
     obstacle_pub = rospy.Publisher('vision/obstacles', Position, queue_size=10)
 
-    # rospy.Subscriber('/camera/video', Image, video_callback, queue_size=1)
-    rospy.Subscriber('/tag_detections_image', Image, video_callback, queue_size=1)
+    rospy.Subscriber('/camera/video', Image, video_callback, queue_size=1)
+    # rospy.Subscriber('/tag_detections_image', Image, video_callback, queue_size=1)
     # rospy.Subscriber('/camera/image_rect_color', Image, video_callback, queue_size=1)
     rospy.Subscriber('/camera/depth', Image, depth_callback, queue_size=1)
 

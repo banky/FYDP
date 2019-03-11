@@ -22,7 +22,7 @@ PUBLISH_RATE = 30 # Publish Rate in Hz
 def shutdown_hook():
     """ Called when ROS is exit """
 
-    rospy.loginfo("Shutting down...")
+    rospy.loginfo("Shutting down camera node...")
 
 def get_video():
     """ Get's the current video data from Kinect """

@@ -10,9 +10,9 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 
-// Servo limits NEED TO BE UPDATED
-#define maxLeft 90
-#define maxRight 100
+#define maxLeft 75
+#define maxRight 110
+#define straight 93
 #define MAX_KEYBOARD_INPUT 120
 #define M_PI 3.14159265358979323846
 #define DO_CALIBRATION 1

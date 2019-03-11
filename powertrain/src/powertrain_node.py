@@ -30,21 +30,6 @@ def shutdown_hook():
 
     rospy.loginfo("Shutting down...")
 
-# TODO: Move this stuff to path planning and controls. This hack is temporary
-def garbage_callback(data, args):
-    pass
-
-def obstacle_callback(data, args):
-    dist = data.range
-    bearing = data.bearing
-    ser_local = args[0]
-
-    # If we are this close to an obstacle
-    if dist < 1.5:
-        ser_local.write('x 97')
-    else:
-        ser_local.write('x 100')
-
 curr_powertrain = PowertrainParams()
 
 def update_powertrain(data):
@@ -101,12 +86,9 @@ def main():
     ser.port = '/dev/ttyACM0'
     ser.open()
 
-    # rospy.Subscriber('vision/garbage', Position, garbage_callback, callback_args=ser)
-    # rospy.Subscriber('vision/obstacles', Position, obstacle_callback, callback_args=ser)
-
     rospy.Subscriber('powertrain/cmd', PowertrainParams, update_powertrain)
 
-    '''Reading IMU orientation data from Arduino and sending to Jetson'''
+    # Reading IMU orientation data from Arduino and sending to Jetson
     orientation_pub = rospy.Publisher('imu/orientation', Quaternion, queue_size=10)
     r = rospy.Rate(PUBLISH_RATE)
 

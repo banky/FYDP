@@ -10,9 +10,9 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 
-#define maxLeft 75
-#define maxRight 110
-#define straight 93
+#define MAX_LEFT 75
+#define MAX_RIGHT 110
+#define STRAIGHT 93
 #define MAX_KEYBOARD_INPUT 120
 #define M_PI 3.14159265358979323846
 #define DO_CALIBRATION 1
@@ -430,21 +430,21 @@ void jetsonCommand(JETSON_CMD cmd, char val)
         break;
 
     case SERVO_ANGLE:
-        // Rotation is value between 0 and 256
-        // 0 is -pi/4 256 is pi/4
-        rotation = val;
+        // Rotation is value between 0 and 255
+        // 0 is -pi/4 255 is pi/4
+        rotation = ((val / 255) * (MAX_RIGHT - MAX_LEFT)) + MAX_LEFT;
         updateMotors();
         break;
 
     case BRISTLE_ROLLER:
-        // Speed is a value between 0 and 256
+        // Speed is a value between 0 and 255
         // 0 is full reverse, 128 is stop, 255 is full forward
         bristleRollerSPeed = int((val / 256) * 200 - 100);
         updateMotors();
         break;
 
     case CONVEYOR:
-        // Speed is a value between 0 and 256
+        // Speed is a value between 0 and 255
         // 0 is full reverse, 128 is stop, 255 is full forward
         conveyorSpeed = int((val / 256) * 200 - 100);
         updateMotors();

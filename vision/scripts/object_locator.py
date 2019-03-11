@@ -23,7 +23,15 @@ FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 FRAME_RESOLUTION = 10 # Number of pixels per degree Kinect uses
 FRAME_MAX_DEPTH = 2047
-BASE_PATH = "../scripts/"
+BASE_PATH = "/home/banky/Development/FYDP/vision/scripts/"
+
+def depth_2_feet(depth):
+    """ Returns the depth measured by the Kinect in meters """
+    return 4945422 + (2.258474 - 4945422)/(1 + (depth/5031.15)**8.170714)
+
+def depth_2_metres(depth):
+    """ Converts a value in feet to metres """
+    return 0.3048 * depth_2_feet(depth)
 
 class Point():
     """ Point describes locations of objects of interest in video """
@@ -194,8 +202,7 @@ class YOLO(object):
     def close_session(self):
         self.sess.close()
 
-def update(yolo):
-    frame = get_video()
+def update(yolo, frame):
     image = Image.fromarray(frame)
     img, out_boxes, out_scores, out_classes = yolo.detect_image(image)
 
@@ -203,13 +210,14 @@ def update(yolo):
     result = np.asarray(img)
     cv2.namedWindow("result", cv2.WINDOW_NORMAL)
     cv2.imshow("result", result)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        exit()
 
     return out_boxes, out_scores, out_classes
 
-def find_obstacles(yolo, out_boxes, out_scores, out_classes):
+def find_obstacles(yolo, out_boxes, out_scores, out_classes, depth):
     obstacles = []
     obstacle_types = ["box", "human", "leg", "chair", "tree"]
-    depth = get_depth()
 
     for i, c in reversed(list(enumerate(out_classes))):
         if yolo.class_names[c] in obstacle_types:
@@ -233,12 +241,11 @@ def find_obstacles(yolo, out_boxes, out_scores, out_classes):
 
     return obstacles
 
-def find_garbage(yolo, out_boxes, out_scores, out_classes):
+def find_garbage(yolo, out_boxes, out_scores, out_classes, depth):
     """ Get the feature location of garbage in the frame """
 
     garbages = []
     garbage_types = ["bottle", "can"]
-    depth = get_depth()
 
     for i, c in reversed(list(enumerate(out_classes))):
         if yolo.class_names[c] in garbage_types:

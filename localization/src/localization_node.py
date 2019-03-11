@@ -2,14 +2,15 @@
 
 import os
 import sys
+from math import sqrt
 import rospy
 import yaml
-from apriltags2_ros.msg import AprilTagDetection, AprilTagDetectionArray
-from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped, Transform, Quaternion, PoseStamped
-from tf.transformations import quaternion_from_euler
+
 import tf
-from math import sqrt
-import time
+from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import TransformStamped, Quaternion, PoseStamped
+
+from apriltags2_ros.msg import AprilTagDetection, AprilTagDetectionArray
 
 BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(BASE_DIR)
@@ -35,7 +36,7 @@ curr_pose = PoseStamped()
 
 def tag_callback(data, listener):
     """ Callback when we receive new tag information """
-    
+
     tags = data
     global curr_pose
     
@@ -105,7 +106,7 @@ def main():
     listener = tf.TransformListener()
 
     rospy.Subscriber('/tag_detections', AprilTagDetectionArray, tag_callback, callback_args=listener, queue_size=1)
-    rospy.SubscribeListener('/imu/orientation', Quaternion, orientation_callback, queue_size=1)
+    rospy.Subscriber('/imu/orientation', Quaternion, orientation_callback, queue_size=1)
 
     pose_publisher = rospy.Publisher('/localization/pose', PoseStamped, queue_size=10)
 

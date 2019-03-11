@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     ser = serial.Serial()
     ser.baudrate = 9600
-    ser.port = '/dev/ttyACM2'
+    ser.port = '/dev/ttyACM0'
     ser.open()
 
     rospy.Subscriber('vision/garbage', Position, garbage_callback, callback_args=ser)

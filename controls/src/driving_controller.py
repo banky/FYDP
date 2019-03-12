@@ -26,6 +26,11 @@ traj_start = np.array([0,0])   #Initialize global trajectory start point to orig
 traj_end = np.array([0,1000])  #Initialize global trajectory end point to far away on y-axis
 
 
+def shutdown_hook():
+    """ Called when ROS is exit """
+
+    rospy.loginfo("Shutting down...")
+
 # Return the cross track error, given the start and end point 
 # of trajectory line and robot's current position
 def get_crosstrack_error(traj_start, traj_end, curr_position):
@@ -58,7 +63,7 @@ def angleWrap(angle):
             angle = angle + 2*m.pi
         else:
             angle = angle - 2*m.pi
-return (angle)
+    return (angle)
 
 
 def pose_callback(data, args):

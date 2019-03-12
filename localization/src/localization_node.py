@@ -112,7 +112,8 @@ def main():
 
     while not rospy.is_shutdown():
 
-        # Broadcast the transforms describing tag positions on map
+        # Broadcast the transforms describing tag positions on map.
+        # Ideally this should be done in another node but we have two days till symposium
         for tag_transform in tag_transforms:
             stamped_t = TransformStamped()
             frame_id = "map"

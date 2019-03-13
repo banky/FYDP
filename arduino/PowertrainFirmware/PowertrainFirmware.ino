@@ -93,7 +93,7 @@ void loop()
     /* Get a new sensor event */
     sensors_event_t event;
     bno.getEvent(&event);
-    publish_imu_event(event);
+    // publish_imu_event(event);
 
     // send data only when you receive data:
     if (Serial.available() > 0)

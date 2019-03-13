@@ -70,7 +70,7 @@ def update_powertrain(data):
         conveyor_speed = MAX_CONV
     conveyor_speed = int(((conveyor_speed - MIN_BRUSH) / (MAX_BRUSH - MIN_BRUSH)) * 255) # Convert to range 0-255
 
-    curr_powertrain.speed = speed
+    curr_powertrain.speed = int(speed)
     curr_powertrain.delta = delta
     curr_powertrain.brush_speed = brush_speed
     curr_powertrain.conveyor_speed = conveyor_speed
@@ -101,6 +101,7 @@ def main():
     while (not rospy.is_shutdown()):
         #Convert reading to a matrix of Euler angles
         line = ser.readline().decode().split(',')
+        print(line)
         e_orientation = [float(euler_angle) for euler_angle in line]
 
         # Order coming in from Arduino is weird
@@ -119,7 +120,7 @@ def main():
 
         # Broadcast latest powertrain data to arduino
         # ASCII character table: http://www.asciitable.com/
-        ser.write(str.encode('x ' + str(curr_powertrain.speed)))
+        ser.write(str.encode('x ' + str(int(curr_powertrain.speed) % 256)))
         ser.write(str.encode('y ' + str(curr_powertrain.delta)))
         ser.write(str.encode('z ' + str(curr_powertrain.brush_speed)))
         ser.write(str.encode('{ ' + str(curr_powertrain.conveyor_speed)))

@@ -93,14 +93,14 @@ def main():
     orientation_pub = rospy.Publisher('imu/orientation', Quaternion, queue_size=10)
     r = rospy.Rate(PUBLISH_RATE)
 
-    #Disgard first 10 readings on startup
+    #Discard first 10 readings on startup
     for i in range(10):
         ser.readline()
     
     #Continuously read orientation data and publish to imu topic
     while (not rospy.is_shutdown()):
         #Convert reading to a matrix of Euler angles
-        line = ser.readline().split(',')
+        line = ser.readline().decode().split(',')
         e_orientation = [float(euler_angle) for euler_angle in line]
 
         # Order coming in from Arduino is weird
@@ -119,10 +119,11 @@ def main():
 
         # Broadcast latest powertrain data to arduino
         # ASCII character table: http://www.asciitable.com/
-        ser.write('x ' + str(curr_powertrain.speed))
-        ser.write('y ' + str(curr_powertrain.delta))
-        ser.write('z ' + str(curr_powertrain.brush_speed))
-        ser.write('{ ' + str(curr_powertrain.conveyor_speed))
+        ser.write(str.encode('x ' + str(curr_powertrain.speed)))
+        ser.write(str.encode('y ' + str(curr_powertrain.delta)))
+        ser.write(str.encode('z ' + str(curr_powertrain.brush_speed)))
+        ser.write(str.encode('{ ' + str(curr_powertrain.conveyor_speed)))
+
         r.sleep()
 
 if __name__ == "__main__":

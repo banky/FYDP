@@ -19,8 +19,9 @@ from powertrain.msg import PowertrainParams
 
 STOP_VELOCITY = 0   #Velocity setting to stop robot
 GO_VELOCITY = 1     #Constant robot velocity in m/s when moving
-K_SMOOTH = 1        #Turn smoothing constant
+K_SMOOTH = 1.5      #Turn smoothing constant
 K_STEER = 1         #Steering constant
+DELTA_MAX = 25 * m.pi / 180
 
 traj_start = np.array([0,0])   #Initialize global trajectory start point to origin
 traj_end = np.array([0,1000])  #Initialize global trajectory end point to far away on y-axis
@@ -37,8 +38,11 @@ def get_crosstrack_error(traj_start, traj_end, curr_position):
     traj_vect = traj_end - traj_start
     start_to_x = curr_position - traj_start
 
+    print("traj_vect ", traj_vect)
+    print("start_to_x ", start_to_x)
+
     # Compute the distance to the line as a vector, using the projection
-    projection = traj_start + ( (traj_vect.dot(start_to_x)) / (np.linalg.norm(traj_vect)^2)) * traj_vect
+    projection = traj_start + ( (traj_vect.dot(start_to_x)) / (np.linalg.norm(traj_vect)**2)) * traj_vect
     distance = curr_position - projection
 
     # Conver traj_vect and start_to_x line from 1x2 to 1x3 vectors
@@ -58,40 +62,44 @@ def get_crosstrack_error(traj_start, traj_end, curr_position):
 
 # Bind any angle in radians between [-pi to pi]
 def angleWrap(angle):
-    if (angle < -m.pi or angle > m.pi):
+    while (angle < -m.pi or angle > m.pi):
         if (angle < -m.pi):
-            angle = angle + 2*m.pi
+            angle = angle + 2 * m.pi
         else:
-            angle = angle - 2*m.pi
+            angle = angle - 2 * m.pi
     return (angle)
 
 
-def pose_callback(data, args):
-    curr_position = np.array([data.position.x , data.position.y])
-    
+def pose_callback(data, powertrain_cmds_pub):
+    curr_position = np.array([data.pose.position.x , data.pose.position.y])
+    print("current position:", curr_position)
+
     #Convert orientation from quaternions to euler angles
-    q_orientation = data.orientation
-    e_orientation = tf.transformations.euler_from_quaternion(q_orientation, 'sxyz')
+    e_orientation = tf.transformations.euler_from_quaternion([data.pose.orientation.x, data.pose.orientation.y, data.pose.orientation.z, data.pose.orientation.w])
+    print("euler_orientation", e_orientation)
 
     crosstrack_error = get_crosstrack_error(traj_start, traj_end, curr_position)
-    
-    # Determine trajectory angle with respect to x-axis
-    traj_to_x_angle = arctan2(traj_end.x - traj_start.x , traj_end.y - traj_start.y)
-    # Convert trajectory angle to be with respect to y-axis (this will make traj_angle and orientation angle in same reference frame)
-    if (traj_to_x_angle > 0):
-        if (traj_to_x_angle < m.pi/2):
-            traj_to_y_angle = -(m.pi/2 - traj_to_x_angle)
-        else:
-            traj_to_y_angle = traj_to_x_angle - m.pi/2 
-    else:
-        if (traj_to_x_angle > -m.pi/2):
-            traj_to_y_angle = -m.pi/2 + traj_to_x_angle
-        else:
-            traj_to_y_angle = 3*m.pi/2 + traj_to_x_angle
+    print("crosstrackerror", crosstrack_error)
+
+    # Determine trajectory angle
+    traj_angle = np.arctan2(traj_end[1] - traj_start[1], traj_end[0] - traj_start[0])
     
     # Calculate steering angle (delta)
-    delta = angleWrap(e_orientation.y - traj_to_y_angle) + arctan2(crosstrack_error, K_SMOOTH*VELOCITY)
-    
+    print("orientation ", e_orientation[2])
+    wrapped = angleWrap(e_orientation[2] - traj_angle)
+    print("wrapped", wrapped)
+    arctan = np.arctan2(crosstrack_error, K_SMOOTH * GO_VELOCITY)
+    print("arctan :" , arctan)
+
+    delta = K_STEER * (angleWrap(e_orientation[2] - traj_angle) + np.arctan2(crosstrack_error, K_SMOOTH * GO_VELOCITY))
+
+    if (delta > DELTA_MAX or delta < -DELTA_MAX):
+        if (delta > DELTA_MAX):
+            delta = DELTA_MAX
+        else:
+            delta = -DELTA_MAX
+    print("delta: " , delta)
+
     # Publish powertrain commands
     pp_msg = PowertrainParams()
     pp_msg.speed = GO_VELOCITY
@@ -100,7 +108,7 @@ def pose_callback(data, args):
     powertrain_cmds_pub.publish(pp_msg)
 
     
-def trajectory_callback(data, args):
+def trajectory_callback(data, powertrain_cmds_pub):
     global traj_start
     global traj_end
     
@@ -110,7 +118,7 @@ def trajectory_callback(data, args):
 
     #STOP Condition: 
     #   When start and end point of trajectory vector are equal
-    if (traj_start == traj_end): #TO-DO: ADD TOLERANCE??????????
+    if (traj_start[0] == traj_end[0] and traj_start[1] == traj_end[1]): #TO-DO: ADD TOLERANCE??????????
         pp_msg = PowertrainParams()
         pp_msg.speed = STOP_VELOCITY
         pp_msg.delta = 0
@@ -119,20 +127,21 @@ def trajectory_callback(data, args):
         powertrain_cmds_pub.publish(pp_msg)
 
 
-
 def main():
     rospy.init_node("controls")
     rospy.loginfo("Starting Controls Node")
     rospy.on_shutdown(shutdown_hook)
 
-    #Subscribe to Pose node for position and orientation data
-    rospy.Subscriber('localization/pose', PoseStamped, pose_callback)
-
-    #Subscribe to trajectory node for path to follow
-    rospy.Subscriber('path_planning/trajectory', TwoPointVector, trajectory_callback)
-
     #Publish commands for power train to this topic
     powertrain_cmds_pub = rospy.Publisher('powertrain/cmd', PowertrainParams, queue_size=10)
+    
+    #Subscribe to Pose node for position and orientation data
+    rospy.Subscriber('localization/pose', PoseStamped, pose_callback, callback_args=powertrain_cmds_pub)
+
+    #Subscribe to trajectory node for path to follow
+    rospy.Subscriber('path_planning/trajectory', TwoPointVector, trajectory_callback, callback_args=powertrain_cmds_pub)
+
+    rospy.spin()
 
 
 if __name__ == "__main__":

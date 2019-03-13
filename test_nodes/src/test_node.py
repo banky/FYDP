@@ -13,16 +13,16 @@ traj_start.y = 0
 
 traj_end = Point()
 traj_end.x = 0
-traj_end.y = 1000
+traj_end.y = 10000
 
 # Position
 ps = PoseStamped()
-ps.pose.position.x = 50
+ps.pose.position.x = 10
 ps.pose.position.y = 50
 ps.pose.position.z = 0
 
 # Orientation
-quaternion = tf.transformations.quaternion_from_euler(0, 0, 0)
+quaternion = tf.transformations.quaternion_from_euler(0, 0, m.pi/4)
 ps.pose.orientation.x = quaternion[0]
 ps.pose.orientation.y = quaternion[1]
 ps.pose.orientation.z = quaternion[2]

@@ -23,7 +23,7 @@ FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 FRAME_RESOLUTION = 10 # Number of pixels per degree Kinect uses
 FRAME_MAX_DEPTH = 2047
-BASE_PATH = "/home/banky/Development/FYDP/vision/scripts/"
+BASE_PATH = os.path.join(os.path.dirname(__file__), '../scripts/')
 
 def depth_2_feet(depth):
     """ Returns the depth measured by the Kinect in meters """

@@ -93,7 +93,7 @@ def main():
     orientation_pub = rospy.Publisher('imu/orientation', Quaternion, queue_size=10)
     r = rospy.Rate(PUBLISH_RATE)
 
-    #Disgard first 10 readings on startup
+    #Discard first 10 readings on startup
     for i in range(10):
         ser.readline()
     

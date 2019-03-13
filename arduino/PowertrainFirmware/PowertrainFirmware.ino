@@ -37,7 +37,7 @@ int motorSpeed = 20;
 int delta = 5;
 
 // Bristle Roller Speed
-int bistleRollerSpeed = 0;
+int bristleRollerSpeed = 0;
 
 // Conveyor Speed
 int conveyorSpeed = 0;
@@ -93,7 +93,7 @@ void loop()
     /* Get a new sensor event */
     sensors_event_t event;
     bno.getEvent(&event);
-    publish_imu_event(event);
+    // publish_imu_event(event);
 
     // send data only when you receive data:
     if (Serial.available() > 0)
@@ -129,34 +129,55 @@ void loop()
  */
 void publish_imu_event(sensors_event_t event)
 {
-    float x_angle, y_angle, z_angle;
+    float yaw, roll, pitch;
 
-    x_angle = event.orientation.x;
-    y_angle = event.orientation.y;
-    z_angle = event.orientation.z;
+    // Note that these are defined incorrectly. Tested on IMU
+    yaw = event.orientation.x;
+    roll = event.orientation.y;
+    pitch = event.orientation.z;
 
     /* Display the floating point data */
-    //X
-    if (x_angle > 180)
-        Serial.print(M_PI / 180 * (x_angle - 360));
+    // Yaw
+    if (yaw > 180)
+        yaw = M_PI / 180 * (yaw - 360);
     else
-        Serial.print(M_PI / 180 * x_angle);
+        yaw = M_PI / 180 * yaw;
+
+    // Take angle from x axis
+    if (yaw > 0)
+        yaw = M_PI / 2 - yaw;
+    else
+        yaw = M_PI / 2 - yaw;
+    
+    // Angle Wrap
+    while (yaw < -M_PI || yaw > M_PI)
+    {
+        if (yaw < -M_PI)
+        {
+            yaw = yaw + 2 * M_PI;
+        } else 
+        {
+            yaw = yaw - 2 * M_PI;
+        }
+    }
+
+    Serial.print(yaw);
+    
+    Serial.print(",");
+
+    // Roll
+    if (roll > 180)
+        Serial.print(M_PI / 180 * (roll - 360));
+    else
+        Serial.print(M_PI / 180 * roll);
 
     Serial.print(",");
 
-    //Y
-    if (y_angle > 180)
-        Serial.print(M_PI / 180 * (y_angle - 360));
+    // Pitch
+    if (pitch > 180)
+        Serial.println(M_PI / 180 * (pitch - 360));
     else
-        Serial.print(M_PI / 180 * y_angle);
-
-    Serial.print(",");
-
-    //Z
-    if (z_angle > 180)
-        Serial.println(M_PI / 180 * (z_angle - 360));
-    else
-        Serial.println(M_PI / 180 * z_angle);
+        Serial.println(M_PI / 180 * pitch);
 }
 
 // Calibrates ESC
@@ -197,11 +218,11 @@ void updateMotors()
     steering.write(rotation);
 
     // Update conveyor
-    int PWMvalue = percent * 5 + 1500; //scale up to 1000-2000
+    int PWMvalue = conveyorSpeed * 5 + 1500; //scale up to 1000-2000
     conveyor.writeMicroseconds(PWMvalue);
 
     // Update bristle roller
-    int PWMvalue = percent * 5 + 1500; //scale up to 1000-2000
+    PWMvalue = bristleRollerSpeed * 5 + 1500; //scale up to 1000-2000
     brush.writeMicroseconds(PWMvalue);
 }
 
@@ -244,6 +265,8 @@ void goStop()
 
 void goConveyor()
 {
+    int percent;
+
     Serial.println("Entered goConveyor.\n");
     while (Serial.available() < 1)
     {
@@ -281,6 +304,8 @@ void goConveyor()
 
 void goBrush()
 {
+    int percent;
+
     Serial.println("Entered goBrush.\n");
     while (Serial.available() < 1)
     {
@@ -399,13 +424,11 @@ void keyboardCommand(int cmd)
     // autoTest if "p" is received.
     else if (incomingByte == 112)
     {
-        Serial.println("testing");
         autoTest();
     }
 
     else
     {
-        Serial.println("I don't know what that command does");
     }
 }
 
@@ -425,6 +448,8 @@ void jetsonCommand(JETSON_CMD cmd, char val)
         // Motor speed value between 0 and 256
         // 0 is full reverse, 256 is full forward, 128 is stop
 
+        Serial.print("Setting motor speed to: ");
+        Serial.println(val);
         motorSpeed = val;
         updateMotors();
         break;
@@ -432,6 +457,8 @@ void jetsonCommand(JETSON_CMD cmd, char val)
     case SERVO_ANGLE:
         // Rotation is value between 0 and 255
         // 0 is -pi/4 255 is pi/4
+        Serial.print("Setting servo angle to: ");
+        Serial.println(val);
         rotation = ((val / 255) * (MAX_RIGHT - MAX_LEFT)) + MAX_LEFT;
         updateMotors();
         break;
@@ -439,13 +466,17 @@ void jetsonCommand(JETSON_CMD cmd, char val)
     case BRISTLE_ROLLER:
         // Speed is a value between 0 and 255
         // 0 is full reverse, 128 is stop, 255 is full forward
-        bristleRollerSPeed = int((val / 256) * 200 - 100);
+        Serial.print("Setting bristle roller speed to: ");
+        Serial.println(val);
+        bristleRollerSpeed = int((val / 256) * 200 - 100);
         updateMotors();
         break;
 
     case CONVEYOR:
         // Speed is a value between 0 and 255
         // 0 is full reverse, 128 is stop, 255 is full forward
+        Serial.print("Setting conveyor speed to: ");
+        Serial.println(val);
         conveyorSpeed = int((val / 256) * 200 - 100);
         updateMotors();
         break;

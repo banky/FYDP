@@ -24,6 +24,7 @@ MAX_BRUSH = 100
 MIN_BRUSH = -100
 MAX_CONV = 100
 MIN_CONV = -100
+ARDUINO_SERIAL_PORT = 'ttyACM0'
 
 def shutdown_hook():
     """ Called when ROS is exit """
@@ -83,7 +84,7 @@ def main():
 
     ser = serial.Serial()
     ser.baudrate = 9600
-    ser.port = '/dev/ttyACM0'
+    ser.port = '/dev/' + ARDUINO_SERIAL_PORT
     ser.open()
 
     rospy.Subscriber('powertrain/cmd', PowertrainParams, update_powertrain)
@@ -92,7 +93,7 @@ def main():
     orientation_pub = rospy.Publisher('imu/orientation', Quaternion, queue_size=10)
     r = rospy.Rate(PUBLISH_RATE)
 
-    #Disgard first 10 readings on startup
+    #Discard first 10 readings on startup
     for i in range(10):
         ser.readline()
     

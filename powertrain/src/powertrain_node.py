@@ -103,8 +103,13 @@ def main():
         line = ser.readline().split(',')
         e_orientation = [float(euler_angle) for euler_angle in line]
 
+        # Order coming in from Arduino is weird
+        yaw = e_orientation[0]
+        roll = e_orientation[1]
+        pitch = e_orientation[2]
+
         #Convert Euler angles to quaternions
-        q_orientation = tf.transformations.quaternion_from_euler(e_orientation[0], e_orientation[1], e_orientation[2], 'sxyz')
+        q_orientation = tf.transformations.quaternion_from_euler(roll, pitch, yaw, 'sxyz')
 
         #Make a quaternion message
         q_msg = Quaternion(x = q_orientation[0], y = q_orientation[1], z = q_orientation[2], w = q_orientation[3])
@@ -118,7 +123,6 @@ def main():
         ser.write('y ' + str(curr_powertrain.delta))
         ser.write('z ' + str(curr_powertrain.brush_speed))
         ser.write('{ ' + str(curr_powertrain.conveyor_speed))
-
         r.sleep()
 
 if __name__ == "__main__":

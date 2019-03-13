@@ -7,11 +7,11 @@
 close all; clc;
 
 % Initialize Video
-videoobj = VideoWriter('vid_13.mp4','MPEG-4');
-truefps = 1;
-videoobj.FrameRate = 10; %Anything less than 10 fps fails.
-videoobj.Quality = 100;
-open(videoobj);
+% videoobj = VideoWriter('vid_13.mp4','MPEG-4');
+% truefps = 1;
+% videoobj.FrameRate = 10; %Anything less than 10 fps fails.
+% videoobj.Quality = 100;
+% open(videoobj);
 
 % Region Bounds
 posMinBound = [-2 -2];
@@ -128,7 +128,7 @@ Vmax = 50; % Upper bound on potential
 % Controls Constants
 K_steer = 3;
 K_smoothing = 1.5;
-velocity = 2;
+velocity = 1;
 
 total_time = 2;  % Total time from beginning of sim. Starts from 2 since initial state is already known
 
@@ -231,8 +231,12 @@ while i < size(waypoints,1)
             shortest_dist_idx = 2;
         end
         
-        end_point = path(:,shortest_dist_idx)';
-        start_point = path(:,shortest_dist_idx - 1)';
+         end_point = path(:,shortest_dist_idx)';
+         start_point = path(:,shortest_dist_idx - 1)';
+         
+         end_point = [0, 50];
+         start_point = [0, 0];
+         mu = [-50; 50; 0.3];
 
         traj_angle = atan2(end_point(2) - start_point(2), end_point(1) - start_point(1));
         [crosstrack_error, next_point] = distanceToLineSegment(start_point,end_point,mu(1:2)');
@@ -286,9 +290,9 @@ while i < size(waypoints,1)
         % Check if we have reached the next feature
         reached_feature = sqrt((mu(1) - end_pos(1))^2 + (mu(2) - end_pos(2))^2) < TOL;
     
-        set(gcf, 'Position', [100, 100, 640, 640]);
-        F = getframe(gcf);
-        writeVideo(videoobj, F);
+%         set(gcf, 'Position', [100, 100, 640, 640]);
+%         F = getframe(gcf);
+%         writeVideo(videoobj, F);
     end
     
     % If we are on our way to pick garbage
@@ -302,6 +306,6 @@ while i < size(waypoints,1)
     i = i + 1;
 end
 
-close(videoobj);
+% close(videoobj);
 
 

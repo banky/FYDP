@@ -99,7 +99,7 @@ def main():
     #Continuously read orientation data and publish to imu topic
     while (not rospy.is_shutdown()):
         #Convert reading to a matrix of Euler angles
-        line = ser.readline().split(',')
+        line = ser.readline().decode().split(',')
         e_orientation = [float(euler_angle) for euler_angle in line]
 
         #Convert Euler angles to quaternions
@@ -113,10 +113,10 @@ def main():
 
         # Broadcast latest powertrain data to arduino
         # ASCII character table: http://www.asciitable.com/
-        ser.write('x ' + str(curr_powertrain.speed))
-        ser.write('y ' + str(curr_powertrain.delta))
-        ser.write('z ' + str(curr_powertrain.brush_speed))
-        ser.write('{ ' + str(curr_powertrain.conveyor_speed))
+        ser.write(str.encode('x ' + str(curr_powertrain.speed)))
+        ser.write(str.encode('y ' + str(curr_powertrain.delta)))
+        ser.write(str.encode('z ' + str(curr_powertrain.brush_speed)))
+        ser.write(str.encode('{ ' + str(curr_powertrain.conveyor_speed)))
 
         r.sleep()
 

@@ -1,4 +1,6 @@
-# FYDP
+# FYDP (Final Year Design Project)
+
+This repository contains all the associated software that was used to operate our autonomous beach cleaning robot. I'd link to our project website, but we stopped paying for the domain :) 
 
 ## Setup Instructions
 1. Install ROS from http://wiki.ros.org/ROS/Installation
